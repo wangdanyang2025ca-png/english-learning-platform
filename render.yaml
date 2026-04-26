@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: english-learning-backend
+    env: node
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://english-learning-frontend.vercel.app
