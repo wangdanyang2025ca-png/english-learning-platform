@@ -34,7 +34,6 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
 }) => {
   const [flipped, setFlipped] = useState(false);
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
-  const [hasPlayedAuto, setHasPlayedAuto] = useState(false);
 
   // 语音播放函数
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
@@ -57,15 +56,12 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
     audio.play().catch(() => console.log('TTS 不可用'));
   }, [word.word, accentMode, speechRate]);
 
-  // 组件加载时自动播放一次发音
+  // 每次新单词出现时自动播放发音
   useEffect(() => {
-    if (!hasPlayedAuto) {
-      setTimeout(() => {
-        handleSpeak(accentMode);
-        setHasPlayedAuto(true);
-      }, 500);
-    }
-  }, [word.word, handleSpeak, accentMode, hasPlayedAuto]);
+    setTimeout(() => {
+      handleSpeak(accentMode);
+    }, 300);
+  }, [word.word, handleSpeak, accentMode]);
 
   return (
     <div style={{ perspective: '1000px', width: '100%', maxWidth: '450px', margin: '0 auto' }}>
