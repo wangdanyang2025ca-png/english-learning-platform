@@ -58,15 +58,13 @@ export const AdvancedLearnPage: React.FC = () => {
     accuracy: 0
   });
 
-  // 已学习的单词集合（用于防止重复）
-  const [learnedWords, setLearnedWords] = useState<Set<string>>(new Set());
-
   // 加载词汇数据
   useEffect(() => {
     // 只在设置完成后才加载词汇
     if (!showSettings) {
       fetchWords();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRound, showSettings, wordsPerRound]);
 
   // 处理设置确认
@@ -80,8 +78,6 @@ export const AdvancedLearnPage: React.FC = () => {
   const fetchWords = async () => {
     try {
       setLoading(true);
-      // 计算每轮的分页偏移（用来获取不同的词汇）
-      const offset = (currentRound - 1) * wordsPerRound;
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/words?limit=${wordsPerRound}&page=${currentRound}`
       );
@@ -120,10 +116,6 @@ export const AdvancedLearnPage: React.FC = () => {
   const handleNext = (isLearned: boolean = true) => {
     // 更新进度
     if (isLearned && currentIndex < words.length) {
-      const currentWord = words[currentIndex];
-      // 记录已学习的单词
-      setLearnedWords(prev => new Set(prev).add(currentWord.word));
-
       setStudyProgress(prev => ({
         ...prev,
         learnedToday: prev.learnedToday + 1,

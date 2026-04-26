@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 /**
  * 高级单词卡片组件
@@ -36,18 +36,8 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
   const [hasPlayedAuto, setHasPlayedAuto] = useState(false);
 
-  // 组件加载时自动播放一次发音
-  useEffect(() => {
-    if (!hasPlayedAuto) {
-      setTimeout(() => {
-        handleSpeak(accentMode);
-        setHasPlayedAuto(true);
-      }, 500);
-    }
-  }, [word.word]);
-
   // 语音播放函数
-  const handleSpeak = (accent: 'us' | 'uk' = accentMode) => {
+  const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     if ('speechSynthesis' in window) {
       speechSynthesis.cancel();
 
@@ -65,7 +55,17 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
     const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=${accent === 'us' ? 'en' : 'en'}&client=tw-ob`;
     const audio = new Audio(ttsUrl);
     audio.play().catch(() => console.log('TTS 不可用'));
-  };
+  }, [word.word, accentMode, speechRate]);
+
+  // 组件加载时自动播放一次发音
+  useEffect(() => {
+    if (!hasPlayedAuto) {
+      setTimeout(() => {
+        handleSpeak(accentMode);
+        setHasPlayedAuto(true);
+      }, 500);
+    }
+  }, [word.word, handleSpeak, accentMode, hasPlayedAuto]);
 
   return (
     <div style={{ perspective: '1000px', width: '100%', maxWidth: '450px', margin: '0 auto' }}>
