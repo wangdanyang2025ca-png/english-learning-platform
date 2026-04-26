@@ -78,10 +78,14 @@ export const AdvancedLearnPage: React.FC = () => {
   const fetchWords = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/words?limit=${wordsPerRound}&page=${currentRound}`
-      );
+      const apiUrl = `${process.env.REACT_APP_API_URL}/words?limit=${wordsPerRound}&page=${currentRound}`;
+      console.log('📡 正在连接API:', apiUrl);
+
+      const response = await fetch(apiUrl);
+      console.log('✅ API响应状态:', response.status);
+
       const data = await response.json();
+      console.log('📦 API数据:', data);
 
       if (data.success && Array.isArray(data.data)) {
         const transformedWords = data.data.map((w: any) => ({
@@ -102,11 +106,13 @@ export const AdvancedLearnPage: React.FC = () => {
         setCurrentIndex(0);
         setError(null);
       } else {
+        console.error('❌ API返回错误:', data);
         setError('无法加载词汇');
       }
     } catch (err) {
-      setError('加载失败，请重试');
-      console.error(err);
+      console.error('❌ 网络错误:', err);
+      const errorMessage = err instanceof Error ? err.message : '未知错误';
+      setError(`加载失败: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
