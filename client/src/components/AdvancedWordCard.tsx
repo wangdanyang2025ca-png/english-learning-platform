@@ -38,91 +38,60 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const isPlayingRef = useRef(false);
   const lastPlayedWordRef = useRef<string>('');
 
-  // 语音播放函数 - 严格控制，确保一次只播放一个
+  // 语音播放函数 - 简洁版本，不使用cancel()
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
-    console.log('🎯 播放请求:', word.word, accent);
-
-    // 立即停止之前的所有播放
-    try {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        console.log('🛑 已停止之前的播放');
-      }
-    } catch (e) {
-      console.log('⚠️ 停止播放失败');
+    // 如果正在播放，忽略新请求
+    if (isPlayingRef.current) {
+      console.log('⏸️ 正在播放，忽略');
+      return;
     }
 
-    // 设置播放状态
+    console.log('🎯 播放:', word.word, accent === 'us' ? '美式' : '英式');
     isPlayingRef.current = true;
-    lastPlayedWordRef.current = word.word;
 
-    // 延迟100ms以确保上一个播放被完全停止
-    setTimeout(() => {
-      try {
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(word.word);
-          utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
-          utterance.rate = speechRate || 1;
-          utterance.pitch = 1.0;
-          utterance.volume = 1.0;
+    try {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(word.word);
+        utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+        utterance.rate = speechRate || 1;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
 
-          utterance.onstart = () => {
-            console.log(`✅ ${accent === 'us' ? '美式' : '英式'} 播放开始: ${word.word}`);
-          };
+        utterance.onstart = () => {
+          console.log('✅ 开始播放');
+        };
 
-          utterance.onend = () => {
-            console.log('✅ 播放结束');
-            isPlayingRef.current = false;
-          };
+        utterance.onend = () => {
+          console.log('✅ 播放完成');
+          isPlayingRef.current = false;
+        };
 
-          utterance.onerror = (event) => {
-            console.error('❌ 播放错误:', event.error);
-            isPlayingRef.current = false;
-          };
+        utterance.onerror = (event) => {
+          console.log('❌ 播放错误:', event.error);
+          isPlayingRef.current = false;
+        };
 
-          window.speechSynthesis.speak(utterance);
-          console.log('📢 已提交播放');
-        }
-      } catch (error) {
-        console.error('❌ 错误:', error);
-        isPlayingRef.current = false;
+        window.speechSynthesis.speak(utterance);
       }
-    }, 100);
+    } catch (error) {
+      console.error('❌ 异常:', error);
+      isPlayingRef.current = false;
+    }
   }, [word.word, accentMode, speechRate]);
 
   // 每次新单词出现时自动播放发音
   useEffect(() => {
-    console.log('📋 新单词检测到:', word.word);
+    console.log('📋 新单词出现:', word.word);
 
-    // 立即停止任何正在进行的播放
-    try {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        console.log('🛑 已停止之前的播放');
-      }
-    } catch (e) {
-      console.log('⚠️ 停止播放失败');
-    }
-
+    // 重置播放状态
     isPlayingRef.current = false;
 
-    // 延迟400ms后自动播放新单词
+    // 延迟500ms后自动播放
     const timer = setTimeout(() => {
-      console.log('⏰ 自动播放超时到期，执行自动播放');
       handleSpeak(accentMode);
-    }, 400);
+    }, 500);
 
-    return () => {
-      clearTimeout(timer);
-      // 卸载时停止播放
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-        }
-      } catch (e) {
-        // 忽略错误
-      }
-    };
+    return () => clearTimeout(timer);
   }, [word.word, accentMode, handleSpeak]);
 
   return (
