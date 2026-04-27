@@ -38,19 +38,18 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const isPlayingRef = useRef(false);
   const lastPlayedWordRef = useRef<string>('');
 
-  // 语音播放函数 - 简洁版本，不使用cancel()
+  // 语音播放函数
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
-    // 如果正在播放，忽略新请求
-    if (isPlayingRef.current) {
-      console.log('⏸️ 正在播放，忽略');
-      return;
-    }
+    if (isPlayingRef.current) return;
 
-    console.log('🎯 播放:', word.word, accent === 'us' ? '美式' : '英式');
     isPlayingRef.current = true;
 
     try {
       if ('speechSynthesis' in window) {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        }
+
         const utterance = new SpeechSynthesisUtterance(word.word);
         utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
         utterance.rate = speechRate || 1;
@@ -58,7 +57,7 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
         utterance.volume = 1.0;
 
         utterance.onstart = () => {
-          console.log('✅ 开始播放');
+          console.log('✅ 开始播放: ' + word.word);
         };
 
         utterance.onend = () => {
@@ -67,11 +66,13 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
         };
 
         utterance.onerror = (event) => {
-          console.log('❌ 播放错误:', event.error);
+          console.error('❌ 播放错误:', event.error);
           isPlayingRef.current = false;
         };
 
         window.speechSynthesis.speak(utterance);
+      } else {
+        isPlayingRef.current = false;
       }
     } catch (error) {
       console.error('❌ 异常:', error);
