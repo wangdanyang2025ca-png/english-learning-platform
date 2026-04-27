@@ -36,7 +36,6 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [flipped, setFlipped] = useState(false);
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
   const isPlayingRef = useRef(false);
-  const lastPlayedWordRef = useRef<string>('');
 
   // 语音播放函数
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
