@@ -38,23 +38,41 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
 
   // 语音播放函数
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
+    console.log('🎯 handleSpeak called with accent:', accent, 'word:', word.word);
+
+    // 使用Web Speech API
     if ('speechSynthesis' in window) {
-      speechSynthesis.cancel();
+      try {
+        // 先取消之前的播放
+        window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(word.word);
-      utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
-      utterance.rate = Math.max(0.5, Math.min(2, speechRate || 1));
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
+        const utterance = new SpeechSynthesisUtterance(word.word);
+        utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+        utterance.rate = Math.max(0.5, Math.min(2, speechRate || 1));
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
 
-      speechSynthesis.speak(utterance);
-      return;
+        console.log('🔊 Speech settings:', {
+          lang: utterance.lang,
+          rate: utterance.rate,
+          pitch: utterance.pitch,
+          volume: utterance.volume
+        });
+
+        // 添加事件监听以调试
+        utterance.onstart = () => console.log('✅ 播放开始:', word.word);
+        utterance.onend = () => console.log('✅ 播放完成');
+        utterance.onerror = (event) => console.error('❌ 播放错误:', event.error);
+
+        window.speechSynthesis.speak(utterance);
+        console.log('✅ speak() 已调用');
+        return;
+      } catch (e) {
+        console.error('❌ Web Speech API 错误:', e);
+      }
+    } else {
+      console.warn('⚠️ 浏览器不支持 Web Speech API');
     }
-
-    // 备选：Google TTS
-    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=${accent === 'us' ? 'en' : 'en'}&client=tw-ob`;
-    const audio = new Audio(ttsUrl);
-    audio.play().catch(() => console.log('TTS 不可用'));
   }, [word.word, accentMode, speechRate]);
 
   // 每次新单词出现时自动播放发音
