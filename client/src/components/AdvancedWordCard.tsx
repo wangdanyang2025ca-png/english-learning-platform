@@ -109,14 +109,48 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
           </div>
 
           {/* 单词 */}
-          <h2 style={{ fontSize: '56px', margin: '0 0 20px 0', fontWeight: 'bold' }}>
+          <h2 style={{ fontSize: '56px', margin: '0 0 10px 0', fontWeight: 'bold' }}>
             {word.word}
           </h2>
 
           {/* IPA 音标 */}
-          <div style={{ fontSize: '18px', opacity: 0.9, marginBottom: '30px' }}>
+          <div style={{ fontSize: '18px', opacity: 0.9, marginBottom: '25px' }}>
             {word.pronunciation.ipa}
           </div>
+
+          {/* 大播放按钮 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSpeak(accentMode);
+            }}
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              color: 'white',
+              fontSize: '36px',
+              cursor: 'pointer',
+              marginBottom: '25px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.3s',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+            }}
+          >
+            🔊
+          </button>
 
           {/* 发音按钮组 */}
           <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
@@ -196,26 +230,40 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
             color: 'white',
             boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
             transform: 'rotateY(180deg)',
             WebkitBackfaceVisibility: 'hidden',
+            overflowY: 'auto',
+            maxHeight: '600px'
           } as React.CSSProperties}
         >
           {/* 中文释义 */}
-          <div style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '25px' }}>
-            {word.definition_cn}
+          <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: 'white' }}>
+            📖 {word.definition_cn}
           </div>
 
+          {/* 分割线 */}
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)', margin: '15px 0' }} />
+
           {/* 例句显示 */}
-          <div style={{ fontSize: '14px', opacity: 0.95, lineHeight: '1.8' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>例句：</div>
-            {word.examples.slice(0, 2).map((example, idx) => (
-              <div key={idx} style={{ marginBottom: '12px', fontStyle: 'italic' }}>
-                {idx + 1}. {example.sentence}
+          <div style={{ fontSize: '13px', opacity: 0.95, lineHeight: '1.7', marginBottom: '20px' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '10px', fontSize: '14px' }}>📝 例句：</div>
+            {word.examples.slice(0, 3).map((example, idx) => (
+              <div key={idx} style={{ marginBottom: '10px', paddingLeft: '10px', borderLeft: '2px solid rgba(255,255,255,0.5)' }}>
+                <span style={{ color: 'rgba(255,255,255,0.8)' }}>{idx + 1}. </span>
+                <span>{example.sentence}</span>
               </div>
             ))}
+          </div>
+
+          {/* 分割线 */}
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)', margin: '15px 0' }} />
+
+          {/* 学习提示 */}
+          <div style={{ fontSize: '12px', opacity: 0.8, fontStyle: 'italic', marginTop: '10px' }}>
+            💡 点击卡片返回正面，继续学习
           </div>
         </div>
       </div>
