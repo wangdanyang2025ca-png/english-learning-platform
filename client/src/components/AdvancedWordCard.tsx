@@ -146,59 +146,61 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
             第 {word.round} 轮
           </div>
 
-          {/* 单词 */}
-          <h2 style={{ fontSize: '56px', margin: '0 0 8px 0', fontWeight: 'bold' }}>
-            {word.word}
-          </h2>
+          {/* 单词和播放按钮容器 */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', marginBottom: '12px', position: 'relative' }}>
+            {/* 单词 */}
+            <h2 style={{ fontSize: '56px', margin: 0, fontWeight: 'bold' }}>
+              {word.word}
+            </h2>
+
+            {/* 小播放按钮 - 在单词右下角 */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSpeak(accentMode);
+              }}
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.25)',
+                border: '2px solid white',
+                color: 'white',
+                fontSize: '20px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s',
+                marginBottom: '4px'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.35)';
+                e.currentTarget.style.transform = 'scale(1.15)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              🔊
+            </button>
+          </div>
 
           {/* 中文释义 - 直接在单词下面 */}
-          <div style={{ fontSize: '18px', color: 'rgba(255,255,255,0.95)', marginBottom: '20px', fontWeight: '500' }}>
+          <div style={{ fontSize: '18px', color: 'rgba(255,255,255,0.95)', marginBottom: '12px', fontWeight: '500' }}>
             {word.definition_cn}
           </div>
 
           {/* 英文定义 */}
-          <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '15px', lineHeight: '1.5', color: 'rgba(255,255,255,0.9)' }}>
+          <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '12px', lineHeight: '1.5', color: 'rgba(255,255,255,0.9)' }}>
             {word.definition_en}
           </div>
 
           {/* IPA 音标 */}
-          <div style={{ fontSize: '18px', opacity: 0.9, marginBottom: '25px' }}>
+          <div style={{ fontSize: '16px', opacity: 0.9, marginBottom: '20px', color: 'rgba(255,255,255,0.8)' }}>
             {word.pronunciation.ipa}
           </div>
-
-          {/* 大播放按钮 */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSpeak(accentMode);
-            }}
-            style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              color: 'white',
-              fontSize: '36px',
-              cursor: 'pointer',
-              marginBottom: '25px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.3s',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
-            }}
-          >
-            🔊
-          </button>
 
           {/* 发音按钮组 */}
           <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
