@@ -41,6 +41,9 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     try {
       if ('speechSynthesis' in window) {
+        // 清空之前的播放队列
+        window.speechSynthesis.cancel();
+
         const utterance = new SpeechSynthesisUtterance(word.word);
         utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
         utterance.rate = speechRate || 1;
@@ -53,26 +56,16 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
 
         utterance.onend = () => {
           console.log('✅ 播放完成');
-          isPlayingRef.current = false;
         };
 
         utterance.onerror = (event) => {
-          console.error('❌ 播放错误:', event.error);
-          isPlayingRef.current = false;
+          console.log('播放错误:', event.error);
         };
 
-        // 如果已经在播放，先停止再播放新的
-        if (window.speechSynthesis.speaking) {
-          window.speechSynthesis.pause();
-          window.speechSynthesis.resume();
-        }
-
-        isPlayingRef.current = true;
         window.speechSynthesis.speak(utterance);
       }
     } catch (error) {
-      console.error('❌ 异常:', error);
-      isPlayingRef.current = false;
+      console.error('异常:', error);
     }
   }, [word.word, accentMode, speechRate]);
 
