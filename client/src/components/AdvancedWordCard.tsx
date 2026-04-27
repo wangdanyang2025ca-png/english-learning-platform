@@ -37,53 +37,37 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
   const isPlayingRef = useRef(false);
 
-  // 语音播放函数 - 使用edge-tts
+  // 语音播放函数 - 使用VoiceRSS API生成真实音频
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     try {
-      // 使用tts1.com免费API
-      const voiceMap = {
-        us: 'en-US-AriaNeural',
-        uk: 'en-GB-SoniaNeural'
+      // VoiceRSS免费API - 生成真实MP3音频文件
+      const lang = accent === 'us' ? 'en-us' : 'en-gb';
+      const audioUrl = `https://api.voicerss.org/?key=9d6ff33a87fa4692881a7535f55a8e3c&hl=${lang}&c=mp3&f=44khz_16bit_mono&src=${encodeURIComponent(word.word)}`;
+
+      // 创建音频元素并播放
+      const audio = new Audio(audioUrl);
+      audio.volume = 1.0;
+
+      audio.onplay = () => {
+        console.log('✅ 开始播放: ' + word.word);
       };
 
-      const audioUrl = `https://api.elevenlabs.io/v1/text-to-speech/presets?text=${encodeURIComponent(word.word)}&voice_preset=${accent === 'us' ? 'adam' : 'bella'}`;
+      audio.onended = () => {
+        console.log('✅ 播放完成');
+      };
 
-      // 备选方案：直接使用speechSynthesis但处理更好
-      if ('speechSynthesis' in window && window.speechSynthesis) {
-        // 清空之前的队列
-        while (window.speechSynthesis.pending) {
-          window.speechSynthesis.cancel();
-        }
+      audio.onerror = (e) => {
+        console.error('❌ 音频错误:', e);
+      };
 
-        const utterance = new SpeechSynthesisUtterance(word.word);
-        utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
-        utterance.rate = speechRate || 1;
-
-        utterance.onstart = () => {
-          console.log('✅ 开始播放: ' + word.word);
-        };
-
-        utterance.onend = () => {
-          console.log('✅ 播放完成');
-        };
-
-        // 关键：获取正确的voice
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0) {
-          const selectedVoice = voices.find(v =>
-            accent === 'us'
-              ? v.lang.startsWith('en-US')
-              : v.lang.startsWith('en-GB')
-          ) || voices[0];
-          utterance.voice = selectedVoice;
-        }
-
-        window.speechSynthesis.speak(utterance);
-      }
+      // 播放音频
+      audio.play().catch(err => {
+        console.error('❌ 播放失败:', err);
+      });
     } catch (error) {
       console.error('❌ 异常:', error);
     }
-  }, [word.word, accentMode, speechRate]);
+  }, [word.word, accentMode]);
 
   // 每次新单词出现时自动播放发音
   useEffect(() => {
@@ -160,19 +144,20 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
                 handleSpeak(accentMode);
               }}
               style={{
-                width: '44px',
-                height: '44px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '50%',
                 background: 'rgba(255,255,255,0.25)',
                 border: '2px solid white',
                 color: 'white',
-                fontSize: '20px',
+                fontSize: '18px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.3s',
-                marginBottom: '4px'
+                marginBottom: '2px',
+                padding: 0
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.35)';
