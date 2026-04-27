@@ -41,25 +41,14 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     try {
       if ('speechSynthesis' in window) {
-        // 清空之前的播放队列
-        window.speechSynthesis.cancel();
-
         const utterance = new SpeechSynthesisUtterance(word.word);
         utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
         utterance.rate = speechRate || 1;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
 
-        utterance.onstart = () => {
-          console.log('✅ 开始播放: ' + word.word);
-        };
-
         utterance.onend = () => {
           console.log('✅ 播放完成');
-        };
-
-        utterance.onerror = (event) => {
-          console.log('播放错误:', event.error);
         };
 
         window.speechSynthesis.speak(utterance);
