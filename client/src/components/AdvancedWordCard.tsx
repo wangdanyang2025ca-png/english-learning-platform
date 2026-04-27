@@ -147,18 +147,18 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
           </div>
 
           {/* 单词 */}
-          <h2 style={{ fontSize: '56px', margin: '0 0 10px 0', fontWeight: 'bold' }}>
+          <h2 style={{ fontSize: '56px', margin: '0 0 8px 0', fontWeight: 'bold' }}>
             {word.word}
           </h2>
 
-          {/* 中英文翻译 */}
-          <div style={{ fontSize: '16px', opacity: 0.95, marginBottom: '15px', lineHeight: '1.5' }}>
-            <div style={{ color: 'rgba(255,255,255,0.9)' }}>
-              {word.definition_en || word.definition_cn}
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginTop: '5px' }}>
-              {word.definition_cn}
-            </div>
+          {/* 中文释义 - 直接在单词下面 */}
+          <div style={{ fontSize: '18px', color: 'rgba(255,255,255,0.95)', marginBottom: '20px', fontWeight: '500' }}>
+            {word.definition_cn}
+          </div>
+
+          {/* 英文定义 */}
+          <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '15px', lineHeight: '1.5', color: 'rgba(255,255,255,0.9)' }}>
+            {word.definition_en}
           </div>
 
           {/* IPA 音标 */}
