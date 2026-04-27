@@ -6,7 +6,7 @@
       "us": "/əˈbɪləti/",
       "uk": "/əˈbɪlɪti/"
     },
-    "definition_cn": "能力；本领；才能",
+    "definition_cn": "n. 能力；本领；才能",
     "pos": "n",
     "categories": [
       "CET4"
@@ -36,8 +36,8 @@
       "us": "/əˈbaʊt/",
       "uk": "/əˈbaʊt/"
     },
-    "definition_cn": "关于；大约",
-    "pos": "n",
+    "definition_cn": "prep. 关于；在...周围 adv. 大约",
+    "pos": "prep,adv",
     "categories": [
       "CET4"
     ],
@@ -156,8 +156,8 @@
       "us": "/ˈækses/",
       "uk": "/ˈæksess/"
     },
-    "definition_cn": "获得；接近；通路",
-    "pos": "n",
+    "definition_cn": "n. 接近；进入权 v. 进入；访问",
+    "pos": "n,v",
     "categories": [
       "CET4"
     ],
@@ -216,8 +216,8 @@
       "us": "/əˈkaʊnt/",
       "uk": "/əˈkaʊnt/"
     },
-    "definition_cn": "账户；说明；考虑",
-    "pos": "n",
+    "definition_cn": "n. 账户；说明 v. 说明；占",
+    "pos": "n,v",
     "categories": [
       "CET4"
     ],
@@ -10986,8 +10986,8 @@
       "us": "/a/美式",
       "uk": "/a/英式"
     },
-    "definition_cn": "能力；本领；才能",
-    "pos": "v",
+    "definition_cn": "n. 能力；本领；才能",
+    "pos": "n",
     "categories": [
       "CET6"
     ],

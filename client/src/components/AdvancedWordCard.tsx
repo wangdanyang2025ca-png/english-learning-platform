@@ -5,6 +5,54 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
  * 功能：英式/美式发音、发音速度控制、自动播放、多样化例句
  */
 
+// 词性标签映射
+const getPosLabel = (pos?: string): string => {
+  const posMap: { [key: string]: string } = {
+    'n': '名词',
+    'v': '动词',
+    'adj': '形容词',
+    'adv': '副词',
+    'prep': '介词',
+    'conj': '连词',
+    'pron': '代词',
+    'int': '感叹词',
+    'art': '冠词',
+    'num': '数词'
+  };
+  return posMap[pos || ''] || pos || '';
+};
+
+// 获取格式化的定义文本 (v. 超过；n. 上方)
+const getFormattedDefinition = (word: AdvancedWord): string => {
+  // 如果有新格式的 definitions，使用多词性格式
+  if (word.definitions && word.definitions.length > 0) {
+    return word.definitions
+      .map(def => {
+        const posLabel = getPosLabel(def.pos);
+        return posLabel ? `${posLabel}. ${def.meaning}` : def.meaning;
+      })
+      .join('；');
+  }
+
+  // 兼容旧格式
+  if (word.definition_cn) {
+    // 如果有旧格式的词性，添加到前面
+    if (word.pos) {
+      const posLabel = getPosLabel(word.pos);
+      return posLabel ? `${posLabel}. ${word.definition_cn}` : word.definition_cn;
+    }
+    return word.definition_cn;
+  }
+
+  return '';
+};
+
+// 定义 - 支持多词性
+interface Definition {
+  pos: string;       // 词性: n, v, adj, adv, prep等
+  meaning: string;   // 释义
+}
+
 interface AdvancedWord {
   word: string;
   pronunciation: {
@@ -12,12 +60,14 @@ interface AdvancedWord {
     us: string;
     uk: string;
   };
-  definition_cn: string;
+  definition_cn?: string;           // 兼容旧格式
+  definitions?: Definition[];       // 新格式：支持多词性
   definition_en?: string;
   examples: Array<{ sentence: string; sentence_cn?: string }>;
   difficulty: number;
   categories: string[];
   round: number;
+  pos?: string;                     // 兼容旧格式
 }
 
 interface AdvancedWordCardProps {
@@ -36,36 +86,109 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [flipped, setFlipped] = useState(false);
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
   const isPlayingRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentWordRef = useRef<string>(word.word); // 追踪当前单词
 
-  // 语音播放函数 - 使用VoiceRSS API生成真实音频
+  // 语音播放函数 - 使用后端TTS服务生成真实音频
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     try {
-      // VoiceRSS免费API - 生成真实MP3音频文件
+      // 检查是否还是当前单词（防止旧单词的音频继续播放）
+      if (currentWordRef.current !== word.word) {
+        console.log(`⚠️ 跳过过期单词的音频: ${currentWordRef.current} -> ${word.word}`);
+        return;
+      }
+
       const lang = accent === 'us' ? 'en-us' : 'en-gb';
-      const audioUrl = `https://api.voicerss.org/?key=9d6ff33a87fa4692881a7535f55a8e3c&hl=${lang}&c=mp3&f=44khz_16bit_mono&src=${encodeURIComponent(word.word)}`;
+      const voiceType = accent === 'us' ? '美音' : '英音';
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+      const audioUrl = `${apiUrl}/tts?word=${encodeURIComponent(word.word)}&lang=${lang}&t=${Date.now()}`;
 
-      // 创建音频元素并播放
-      const audio = new Audio(audioUrl);
+      console.log(`🔊 播放发音: "${word.word}" (${voiceType})`);
+
+      // 强制停止当前音频
+      if (audioRef.current) {
+        try {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+          audioRef.current.currentTime = 0;
+          audioRef.current.load();
+        } catch (e) {
+          // 忽略停止错误
+        }
+      }
+
+      // 创建新的音频元素
+      const audio = new Audio();
+      audioRef.current = audio;
       audio.volume = 1.0;
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
 
-      audio.onplay = () => {
-        console.log('✅ 开始播放: ' + word.word);
+      let isCleanedUp = false;
+
+      const cleanup = () => {
+        if (!isCleanedUp) {
+          isCleanedUp = true;
+          try {
+            audio.pause();
+            audio.src = '';
+            audio.load();
+          } catch (e) {
+            // 忽略错误
+          }
+        }
       };
 
-      audio.onended = () => {
+      const handlePlay = () => {
+        console.log(`✅ 开始播放: ${word.word} (${voiceType})`);
+      };
+
+      const handleEnded = () => {
         console.log('✅ 播放完成');
+        isPlayingRef.current = false;
+        cleanup();
       };
 
-      audio.onerror = (e) => {
-        console.error('❌ 音频错误:', e);
+      const handleError = (e: Event) => {
+        const error = (e.target as HTMLAudioElement)?.error;
+        console.error('❌ 音频错误:', error?.message || error?.code);
+        isPlayingRef.current = false;
+        cleanup();
       };
 
-      // 播放音频
-      audio.play().catch(err => {
-        console.error('❌ 播放失败:', err);
-      });
+      const handleCanPlay = () => {
+        console.log('📦 音频已加载，开始播放...');
+      };
+
+      // 先设置 src，然后添加事件监听器
+      audio.src = audioUrl;
+
+      audio.addEventListener('canplay', handleCanPlay, { once: true });
+      audio.addEventListener('play', handlePlay, { once: true });
+      audio.addEventListener('ended', handleEnded, { once: true });
+      audio.addEventListener('error', handleError, { once: true });
+
+      isPlayingRef.current = true;
+
+      // 触发加载
+      audio.load();
+
+      // 延迟100ms确保src已设置
+      setTimeout(() => {
+        if (currentWordRef.current === word.word && isPlayingRef.current) {
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.error('❌ 播放失败:', err.message);
+              isPlayingRef.current = false;
+              cleanup();
+            });
+          }
+        }
+      }, 100);
     } catch (error) {
       console.error('❌ 异常:', error);
+      isPlayingRef.current = false;
     }
   }, [word.word, accentMode]);
 
@@ -73,15 +196,37 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   useEffect(() => {
     console.log('📋 新单词出现:', word.word);
 
-    // 重置播放状态
+    // 更新当前单词引用
+    currentWordRef.current = word.word;
+
+    // 停止旧音频
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      } catch (e) {
+        // 忽略错误
+      }
+    }
+
     isPlayingRef.current = false;
 
-    // 延迟500ms后自动播放
-    const timer = setTimeout(() => {
-      handleSpeak(accentMode);
-    }, 500);
+    let isMounted = true;
+    let timer: NodeJS.Timeout;
 
-    return () => clearTimeout(timer);
+    const playAudio = () => {
+      if (isMounted && !isPlayingRef.current && currentWordRef.current === word.word) {
+        handleSpeak(accentMode);
+      }
+    };
+
+    // 延迟500ms后自动播放
+    timer = setTimeout(playAudio, 500);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [word.word, accentMode, handleSpeak]);
 
   return (
@@ -172,13 +317,15 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
             </button>
           </div>
 
-          {/* 中文释义 - 直接在单词下面 */}
-          <div style={{ fontSize: '18px', color: 'rgba(255,255,255,0.95)', marginBottom: '12px', fontWeight: '500' }}>
-            {word.definition_cn}
+          {/* 中文释义 + 词性 (格式: v. 超过；n. 上方) */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '17px', color: 'rgba(255,255,255,0.95)', fontWeight: '500', lineHeight: '1.6' }}>
+              {getFormattedDefinition(word)}
+            </div>
           </div>
 
           {/* 英文定义 */}
-          <div style={{ fontSize: '14px', opacity: 0.85, marginBottom: '12px', lineHeight: '1.5', color: 'rgba(255,255,255,0.9)' }}>
+          <div style={{ fontSize: '13px', opacity: 0.8, marginBottom: '12px', lineHeight: '1.5', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic' }}>
             {word.definition_en}
           </div>
 
@@ -278,18 +425,20 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
             <div style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px', color: 'white' }}>
               {word.word}
             </div>
-            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.9)' }}>
-              {word.definition_cn}
+            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.9)', lineHeight: '1.5' }}>
+              {getFormattedDefinition(word)}
             </div>
           </div>
 
           {/* 分割线 */}
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)', margin: '15px 0' }} />
 
-          {/* 中文释义 */}
-          <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px', color: 'white' }}>
-            📖 {word.definition_en || word.definition_cn}
-          </div>
+          {/* 英文定义 */}
+          {word.definition_en && (
+            <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '10px', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', lineHeight: '1.5' }}>
+              📖 {word.definition_en}
+            </div>
+          )}
 
           {/* 例句显示 */}
           <div style={{ fontSize: '12px', opacity: 0.95, lineHeight: '1.6', marginBottom: '10px', flex: 1 }}>

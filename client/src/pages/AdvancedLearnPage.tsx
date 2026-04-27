@@ -88,20 +88,60 @@ export const AdvancedLearnPage: React.FC = () => {
       console.log('📦 API数据:', data);
 
       if (data.success && Array.isArray(data.data)) {
-        const transformedWords = data.data.map((w: any) => ({
-          word: w.word,
-          pronunciation: {
-            ipa: w.pronunciation?.ipa || w.ipa || '',
-            us: w.pronunciation?.us || w.ipa || '',
-            uk: w.pronunciation?.uk || w.ipa || ''
-          },
-          definition_cn: w.definition_cn || '',
-          definition_en: w.definition_en || '',
-          examples: (Array.isArray(w.examples) ? w.examples : []).slice(0, 3),
-          difficulty: w.difficulty || 1,
-          categories: w.categories || [],
-          round: currentRound
-        }));
+        const transformedWords = data.data.map((w: any) => {
+          // 将旧格式的definition_cn转换为新格式的definitions
+          let definitions: any[] = w.definitions || [];
+
+          // 如果没有新格式的definitions，从旧格式转换
+          if (!definitions.length && (w.definition_cn || w.pos)) {
+            // 如果有pos字段，创建单个定义
+            if (w.pos && w.definition_cn) {
+              definitions = [{
+                pos: w.pos,
+                meaning: w.definition_cn
+              }];
+            } else if (w.definition_cn) {
+              // 尝试从definition_cn中解析多个词性（如果格式是"v. 超过；n. 上方"）
+              const meanings = w.definition_cn.split('；').map((m: string) => m.trim());
+              if (meanings.some((m: string) => m.match(/^[a-z]+\./))) {
+                // 格式为 "pos. meaning" 的情况
+                definitions = meanings.map((m: string) => {
+                  const match = m.match(/^([a-z.]+)\s+(.+)$/);
+                  if (match) {
+                    return {
+                      pos: match[1].replace('.', ''),
+                      meaning: match[2]
+                    };
+                  }
+                  return { pos: 'n', meaning: m };
+                });
+              } else {
+                // 保留原格式
+                definitions = [{
+                  pos: w.pos || 'n',
+                  meaning: w.definition_cn
+                }];
+              }
+            }
+          }
+
+          return {
+            word: w.word,
+            pronunciation: {
+              ipa: w.pronunciation?.ipa || w.ipa || '',
+              us: w.pronunciation?.us || w.ipa || '',
+              uk: w.pronunciation?.uk || w.ipa || ''
+            },
+            definition_cn: w.definition_cn || '',
+            definitions: definitions,
+            definition_en: w.definition_en || '',
+            examples: (Array.isArray(w.examples) ? w.examples : []).slice(0, 3),
+            difficulty: w.difficulty || 1,
+            categories: w.categories || [],
+            pos: w.pos,
+            round: currentRound
+          };
+        });
 
         setWords(transformedWords);
         setCurrentIndex(0);

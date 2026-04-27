@@ -3,6 +3,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as https from 'https';
+import axios from 'axios';
+import { exec } from 'child_process';
+import * as util from 'util';
 
 dotenv.config();
 
@@ -119,6 +123,68 @@ app.get('/api/words/stats/summary', (req: Request, res: Response) => {
       categories: ['CET4', 'CET6']
     }
   });
+});
+
+// TTS (文本转语音) API - 支持美式和英式发音区分
+app.get('/api/tts', async (req: Request, res: Response) => {
+  const { word, lang = 'en-us' } = req.query;
+
+  if (!word) {
+    return res.status(400).json({ success: false, message: 'Missing word parameter' });
+  }
+
+  try {
+    const wordStr = (word as string);
+    const isGb = lang === 'en-gb';
+    const voiceType = isGb ? '英式发音' : '美式发音';
+
+    console.log(`🔊 生成TTS音频: "${wordStr}" (${voiceType})`);
+
+    // 使用不同的TTS URL根据语言
+    let ttsUrl: string;
+
+    if (isGb) {
+      // 英式发音 - 使用英国地区的 Google Translate
+      ttsUrl = `https://translate.google.co.uk/translate_tts?ie=UTF-8&client=gtx&tl=en_GB&q=${encodeURIComponent(wordStr)}`;
+    } else {
+      // 美式发音 - 使用美国地区的 Google Translate
+      ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=gtx&tl=en_US&q=${encodeURIComponent(wordStr)}`;
+    }
+
+    console.log(`📡 调用 Google Translate TTS (${voiceType})...`);
+
+    const response = await axios.get(ttsUrl, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': isGb ? 'https://translate.google.co.uk/' : 'https://translate.google.com/',
+        'Accept-Language': isGb ? 'en-GB,en;q=0.9' : 'en-US,en;q=0.9',
+        'Accept': 'audio/mpeg'
+      },
+      timeout: 15000
+    });
+
+    // 验证返回的是有效的音频数据
+    if (!response.data || response.data.length < 500) {
+      console.error('❌ 收到无效数据，长度:', response.data?.length);
+      throw new Error('Invalid audio data from Google TTS');
+    }
+
+    console.log(`✅ 音频生成成功，大小: ${response.data.length} 字节 (${voiceType})`);
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30天缓存
+    res.setHeader('Content-Length', response.data.length);
+    res.send(response.data);
+
+  } catch (error: any) {
+    console.error('❌ TTS错误:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate audio',
+      error: error.message
+    });
+  }
 });
 
 // 错误处理中间件
