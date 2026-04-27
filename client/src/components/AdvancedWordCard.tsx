@@ -35,113 +35,94 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
 }) => {
   const [flipped, setFlipped] = useState(false);
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const isPlayingRef = useRef(false);
+  const lastPlayedWordRef = useRef<string>('');
 
-  // 语音播放函数 - 确保一次只播放一个音频
+  // 语音播放函数 - 严格控制，确保一次只播放一个
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
-    // 防止重复播放
-    if (isPlayingRef.current) {
-      console.log('⏸️ 正在播放中，忽略新的播放请求');
-      return;
-    }
+    console.log('🎯 播放请求:', word.word, accent);
 
-    console.log('🎯 播放:', word.word, '(' + (accent === 'us' ? '美式' : '英式') + ')');
-
-    // 停止之前的音频
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.currentTime = 0;
-    }
-
-    // 音频源列表（按优先级排序）
-    const audioSources = [
-      {
-        name: 'Collins',
-        url: `https://www.collinsdictionary.com/sounds/english_${accent}_${word.word.toLowerCase()}.mp3`
-      },
-      ...(accent === 'us' ? [{
-        name: 'Merriam-Webster',
-        url: `https://media.merriam-webster.com/audio/prons/en/us/mp3/${word.word.substring(0, 1)}/${word.word.toLowerCase()}.mp3`
-      }] : []),
-      {
-        name: 'Youdao',
-        url: `https://dict.youdao.com/dictvoice?audio=${word.word}&type=${accent === 'us' ? 2 : 1}`
-      },
-      {
-        name: 'Google TTS',
-        url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=en&client=gtx`
+    // 立即停止之前的所有播放
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        console.log('🛑 已停止之前的播放');
       }
-    ];
+    } catch (e) {
+      console.log('⚠️ 停止播放失败');
+    }
 
-    let sourceIndex = 0;
+    // 设置播放状态
+    isPlayingRef.current = true;
+    lastPlayedWordRef.current = word.word;
 
-    function tryNextSource() {
-      if (sourceIndex >= audioSources.length) {
-        console.warn('❌ 所有音频源都失败了');
+    // 延迟100ms以确保上一个播放被完全停止
+    setTimeout(() => {
+      try {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(word.word);
+          utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+          utterance.rate = speechRate || 1;
+          utterance.pitch = 1.0;
+          utterance.volume = 1.0;
+
+          utterance.onstart = () => {
+            console.log(`✅ ${accent === 'us' ? '美式' : '英式'} 播放开始: ${word.word}`);
+          };
+
+          utterance.onend = () => {
+            console.log('✅ 播放结束');
+            isPlayingRef.current = false;
+          };
+
+          utterance.onerror = (event) => {
+            console.error('❌ 播放错误:', event.error);
+            isPlayingRef.current = false;
+          };
+
+          window.speechSynthesis.speak(utterance);
+          console.log('📢 已提交播放');
+        }
+      } catch (error) {
+        console.error('❌ 错误:', error);
         isPlayingRef.current = false;
-        return;
       }
-
-      const source = audioSources[sourceIndex];
-      console.log(`📻 尝试 ${source.name}`);
-
-      const audio = new Audio(source.url);
-      currentAudioRef.current = audio;
-      isPlayingRef.current = true;
-
-      audio.onplay = () => {
-        console.log(`✅ ${source.name} 播放中...`);
-      };
-
-      audio.onended = () => {
-        console.log('✅ 播放完成');
-        isPlayingRef.current = false;
-      };
-
-      audio.onerror = () => {
-        console.log(`❌ ${source.name} 失败`);
-        sourceIndex++;
-        tryNextSource();
-      };
-
-      const timeout = setTimeout(() => {
-        audio.pause();
-        console.log(`⏱️ ${source.name} 超时`);
-        sourceIndex++;
-        tryNextSource();
-      }, 4000);
-
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => clearTimeout(timeout))
-          .catch(() => {
-            console.log(`❌ ${source.name} 播放被中断`);
-            clearTimeout(timeout);
-            sourceIndex++;
-            tryNextSource();
-          });
-      }
-    }
-
-    tryNextSource();
+    }, 100);
   }, [word.word, accentMode, speechRate]);
 
-  // 每次新单词出现时自动播放发音（延迟300ms以避免冲突）
+  // 每次新单词出现时自动播放发音
   useEffect(() => {
-    // 先停止任何正在进行的播放
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.currentTime = 0;
+    console.log('📋 新单词检测到:', word.word);
+
+    // 立即停止任何正在进行的播放
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        console.log('🛑 已停止之前的播放');
+      }
+    } catch (e) {
+      console.log('⚠️ 停止播放失败');
     }
+
     isPlayingRef.current = false;
 
+    // 延迟400ms后自动播放新单词
     const timer = setTimeout(() => {
+      console.log('⏰ 自动播放超时到期，执行自动播放');
       handleSpeak(accentMode);
     }, 400);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      // 卸载时停止播放
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+      } catch (e) {
+        // 忽略错误
+      }
+    };
   }, [word.word, accentMode, handleSpeak]);
 
   return (
