@@ -65,19 +65,19 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   }, [word.word, handleSpeak, accentMode]);
 
   return (
-    <div style={{ perspective: '1000px', width: '100%', maxWidth: '450px', margin: '0 auto' }}>
+    <div style={{ perspective: '1000px', width: '100%', maxWidth: '380px', margin: '0 auto' }}>
       {/* 卡片容器（3D 翻转效果）*/}
       <div
         onClick={() => setFlipped(!flipped)}
         style={{
           position: 'relative',
           width: '100%',
-          height: '420px',
+          height: '380px',
           cursor: 'pointer',
           transition: 'transform 0.6s',
           transformStyle: 'preserve-3d',
           transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-          marginBottom: '20px'
+          marginBottom: '30px'
         }}
       >
         {/* 正面：单词和发音 */}
@@ -85,7 +85,7 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
           style={{
             position: 'absolute',
             width: '100%',
-            minHeight: '350px',
+            height: '380px',
             backfaceVisibility: 'hidden',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             borderRadius: '16px',
@@ -234,7 +234,7 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
           style={{
             position: 'absolute',
             width: '100%',
-            height: '420px',
+            height: '380px',
             backfaceVisibility: 'hidden',
             background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
             borderRadius: '16px',
@@ -250,24 +250,34 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
             overflowY: 'auto'
           } as React.CSSProperties}
         >
-          {/* 中文释义 */}
-          <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', color: 'white' }}>
-            📖 {word.definition_cn}
+          {/* 英文单词和中文注释 */}
+          <div style={{ marginBottom: '15px', textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px', color: 'white' }}>
+              {word.word}
+            </div>
+            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.9)' }}>
+              {word.definition_cn}
+            </div>
           </div>
 
           {/* 分割线 */}
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)', margin: '15px 0' }} />
 
+          {/* 中文释义 */}
+          <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px', color: 'white' }}>
+            📖 {word.definition_en || word.definition_cn}
+          </div>
+
           {/* 例句显示 */}
-          <div style={{ fontSize: '13px', opacity: 0.95, lineHeight: '1.8', marginBottom: '20px' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '10px', fontSize: '14px' }}>📝 例句：</div>
-            {word.examples.slice(0, 3).map((example, idx) => (
-              <div key={idx} style={{ marginBottom: '15px', paddingLeft: '10px', borderLeft: '2px solid rgba(255,255,255,0.5)' }}>
-                <div style={{ color: 'rgba(255,255,255,0.9)', marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', opacity: 0.95, lineHeight: '1.6', marginBottom: '10px', flex: 1 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '13px' }}>📝 例句：</div>
+            {word.examples.slice(0, 2).map((example, idx) => (
+              <div key={idx} style={{ marginBottom: '10px', paddingLeft: '8px', borderLeft: '2px solid rgba(255,255,255,0.5)' }}>
+                <div style={{ color: 'rgba(255,255,255,0.9)', marginBottom: '3px', fontSize: '11px' }}>
                   {idx + 1}. {example.sentence}
                 </div>
                 {example.sentence_cn && (
-                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontStyle: 'italic' }}>
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', fontStyle: 'italic' }}>
                     {example.sentence_cn}
                   </div>
                 )}
@@ -275,12 +285,9 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
             ))}
           </div>
 
-          {/* 分割线 */}
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)', margin: '15px 0' }} />
-
           {/* 学习提示 */}
-          <div style={{ fontSize: '12px', opacity: 0.8, fontStyle: 'italic', marginTop: '10px' }}>
-            💡 点击卡片返回正面，继续学习
+          <div style={{ fontSize: '11px', opacity: 0.8, fontStyle: 'italic', marginTop: 'auto' }}>
+            💡 点击卡片返回正面
           </div>
         </div>
       </div>
