@@ -36,63 +36,82 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [flipped, setFlipped] = useState(false);
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
 
-  // 语音播放函数 - 使用有道词典高质量发音
+  // 语音播放函数 - 多源音频方案
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
-    console.log('🎯 播放单词:', word.word, '口音:', accent);
+    console.log('🎯 播放:', word.word, '(' + (accent === 'us' ? '美式' : '英式') + ')');
 
-    try {
-      // 使用有道词典的发音（和有道词典一致）
-      // 参数: le=en 为英文，uk为英式，us为美式
-      const le = accent === 'us' ? 'us' : 'uk';
-      const youdaoUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word.word)}&le=${le}`;
+    // 音频源列表（按优先级排序）
+    const audioSources = [
+      // 方案1: Collins Dictionary
+      {
+        name: 'Collins',
+        url: `https://www.collinsdictionary.com/sounds/english_${accent}_${word.word.toLowerCase()}.mp3`
+      },
+      // 方案2: Merriam-Webster (只有美式)
+      ...(accent === 'us' ? [{
+        name: 'Merriam-Webster',
+        url: `https://media.merriam-webster.com/audio/prons/en/us/mp3/${word.word.substring(0, 1)}/${word.word.toLowerCase()}.mp3`
+      }] : []),
+      // 方案3: 有道词典 - 多种格式尝试
+      {
+        name: 'Youdao',
+        url: `https://dict.youdao.com/dictvoice?audio=${word.word}&type=${accent === 'us' ? 2 : 1}`
+      },
+      // 方案4: Google Translate TTS
+      {
+        name: 'Google TTS',
+        url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=en&client=gtx`
+      }
+    ];
 
-      console.log('🔊 播放有道词典发音:', word.word, accent);
+    let sourceIndex = 0;
 
-      const audio = new Audio(youdaoUrl);
+    function tryNextSource() {
+      if (sourceIndex >= audioSources.length) {
+        console.warn('❌ 所有音频源都失败了');
+        return;
+      }
+
+      const source = audioSources[sourceIndex];
+      console.log(`尝试 [${sourceIndex + 1}/${audioSources.length}] ${source.name}`);
+
+      const audio = new Audio(source.url);
 
       audio.onplay = () => {
-        console.log('✅ 开始播放:', accent === 'us' ? '美式' : '英式', word.word);
+        console.log(`✅ 使用${source.name}播放成功`);
       };
 
       audio.onended = () => {
         console.log('✅ 播放完成');
       };
 
-      audio.onerror = (e) => {
-        console.error('❌ 有道发音失败，尝试备选方案:', e);
-        tryBackup();
+      audio.onerror = () => {
+        console.log(`❌ ${source.name}失败，尝试下一个...`);
+        sourceIndex++;
+        tryNextSource();
       };
 
-      // 尝试播放
+      // 设置超时以防止无限等待
+      const timeout = setTimeout(() => {
+        console.log(`⏱️ ${source.name}加载超时`);
+        sourceIndex++;
+        tryNextSource();
+      }, 3000);
+
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          console.warn('❌ 播放失败:', err);
-          tryBackup();
-        });
+        playPromise
+          .then(() => clearTimeout(timeout))
+          .catch(() => {
+            console.log(`❌ ${source.name}播放失败`);
+            clearTimeout(timeout);
+            sourceIndex++;
+            tryNextSource();
+          });
       }
-    } catch (error) {
-      console.error('❌ 错误:', error);
     }
 
-    // 备选方案：尝试其他来源
-    function tryBackup() {
-      console.log('⚠️ 尝试备选发音源...');
-
-      // 备选1：使用Google Translate音频
-      const le = accent === 'us' ? 'en' : 'en';
-      const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=${le}&client=gtx`;
-
-      const backupAudio = new Audio(googleUrl);
-      backupAudio.onplay = () => console.log('✅ 使用Google音频播放');
-      backupAudio.onerror = () => {
-        console.warn('⚠️ Google音频也失败，停止播放');
-      };
-
-      backupAudio.play().catch(() => {
-        console.warn('❌ 所有音频源都不可用');
-      });
-    }
+    tryNextSource();
   }, [word.word, accentMode, speechRate]);
 
   // 每次新单词出现时自动播放发音
