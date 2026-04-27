@@ -40,38 +40,51 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     console.log('🎯 handleSpeak called with accent:', accent, 'word:', word.word);
 
-    // 使用Web Speech API
-    if ('speechSynthesis' in window) {
-      try {
-        // 先取消之前的播放
-        window.speechSynthesis.cancel();
+    try {
+      // 方案1: 使用Web Speech API (最优先)
+      if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length > 0) {
+        try {
+          window.speechSynthesis.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(word.word);
-        utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
-        utterance.rate = Math.max(0.5, Math.min(2, speechRate || 1));
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
+          const utterance = new SpeechSynthesisUtterance(word.word);
+          utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+          utterance.rate = Math.max(0.5, Math.min(2, speechRate || 1));
+          utterance.pitch = 1.0;
+          utterance.volume = 1.0;
 
-        console.log('🔊 Speech settings:', {
-          lang: utterance.lang,
-          rate: utterance.rate,
-          pitch: utterance.pitch,
-          volume: utterance.volume
-        });
+          console.log('🔊 使用 Web Speech API，语言:', utterance.lang);
 
-        // 添加事件监听以调试
-        utterance.onstart = () => console.log('✅ 播放开始:', word.word);
-        utterance.onend = () => console.log('✅ 播放完成');
-        utterance.onerror = (event) => console.error('❌ 播放错误:', event.error);
+          utterance.onstart = () => console.log('✅ 播放开始');
+          utterance.onend = () => console.log('✅ 播放完成');
+          utterance.onerror = (event) => console.error('❌ 播放错误:', event.error);
 
-        window.speechSynthesis.speak(utterance);
-        console.log('✅ speak() 已调用');
-        return;
-      } catch (e) {
-        console.error('❌ Web Speech API 错误:', e);
+          const result = window.speechSynthesis.speak(utterance);
+          console.log('✅ speak() 调用结果:', result);
+          return;
+        } catch (e) {
+          console.error('❌ Web Speech API 错误:', e);
+        }
       }
-    } else {
-      console.warn('⚠️ 浏览器不支持 Web Speech API');
+
+      // 方案2: 使用Google Translate TTS API
+      console.log('⚠️ 尝试备选方案: Google Translate TTS');
+      const lang = accent === 'us' ? 'en' : 'en';
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=${lang}&client=gtx&tl_src_lang=en`;
+
+      const audio = new Audio(ttsUrl);
+      audio.crossOrigin = 'anonymous';
+      audio.oncanplay = () => console.log('✅ 音频可以播放');
+      audio.onplay = () => console.log('✅ 开始播放音频');
+      audio.onerror = (e) => console.error('❌ 音频加载错误:', e);
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => console.log('✅ 音频播放成功'))
+          .catch(err => console.error('❌ 音频播放失败:', err));
+      }
+    } catch (error) {
+      console.error('❌ 播放发生错误:', error);
     }
   }, [word.word, accentMode, speechRate]);
 
