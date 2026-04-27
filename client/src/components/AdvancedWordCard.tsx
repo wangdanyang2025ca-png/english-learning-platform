@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * 高级单词卡片组件
@@ -35,29 +35,39 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
 }) => {
   const [flipped, setFlipped] = useState(false);
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const isPlayingRef = useRef(false);
 
-  // 语音播放函数 - 多源音频方案
+  // 语音播放函数 - 确保一次只播放一个音频
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
+    // 防止重复播放
+    if (isPlayingRef.current) {
+      console.log('⏸️ 正在播放中，忽略新的播放请求');
+      return;
+    }
+
     console.log('🎯 播放:', word.word, '(' + (accent === 'us' ? '美式' : '英式') + ')');
+
+    // 停止之前的音频
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+    }
 
     // 音频源列表（按优先级排序）
     const audioSources = [
-      // 方案1: Collins Dictionary
       {
         name: 'Collins',
         url: `https://www.collinsdictionary.com/sounds/english_${accent}_${word.word.toLowerCase()}.mp3`
       },
-      // 方案2: Merriam-Webster (只有美式)
       ...(accent === 'us' ? [{
         name: 'Merriam-Webster',
         url: `https://media.merriam-webster.com/audio/prons/en/us/mp3/${word.word.substring(0, 1)}/${word.word.toLowerCase()}.mp3`
       }] : []),
-      // 方案3: 有道词典 - 多种格式尝试
       {
         name: 'Youdao',
         url: `https://dict.youdao.com/dictvoice?audio=${word.word}&type=${accent === 'us' ? 2 : 1}`
       },
-      // 方案4: Google Translate TTS
       {
         name: 'Google TTS',
         url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=en&client=gtx`
@@ -69,41 +79,45 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
     function tryNextSource() {
       if (sourceIndex >= audioSources.length) {
         console.warn('❌ 所有音频源都失败了');
+        isPlayingRef.current = false;
         return;
       }
 
       const source = audioSources[sourceIndex];
-      console.log(`尝试 [${sourceIndex + 1}/${audioSources.length}] ${source.name}`);
+      console.log(`📻 尝试 ${source.name}`);
 
       const audio = new Audio(source.url);
+      currentAudioRef.current = audio;
+      isPlayingRef.current = true;
 
       audio.onplay = () => {
-        console.log(`✅ 使用${source.name}播放成功`);
+        console.log(`✅ ${source.name} 播放中...`);
       };
 
       audio.onended = () => {
         console.log('✅ 播放完成');
+        isPlayingRef.current = false;
       };
 
       audio.onerror = () => {
-        console.log(`❌ ${source.name}失败，尝试下一个...`);
+        console.log(`❌ ${source.name} 失败`);
         sourceIndex++;
         tryNextSource();
       };
 
-      // 设置超时以防止无限等待
       const timeout = setTimeout(() => {
-        console.log(`⏱️ ${source.name}加载超时`);
+        audio.pause();
+        console.log(`⏱️ ${source.name} 超时`);
         sourceIndex++;
         tryNextSource();
-      }, 3000);
+      }, 4000);
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => clearTimeout(timeout))
           .catch(() => {
-            console.log(`❌ ${source.name}播放失败`);
+            console.log(`❌ ${source.name} 播放被中断`);
             clearTimeout(timeout);
             sourceIndex++;
             tryNextSource();
@@ -114,12 +128,21 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
     tryNextSource();
   }, [word.word, accentMode, speechRate]);
 
-  // 每次新单词出现时自动播放发音
+  // 每次新单词出现时自动播放发音（延迟300ms以避免冲突）
   useEffect(() => {
-    setTimeout(() => {
+    // 先停止任何正在进行的播放
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+    }
+    isPlayingRef.current = false;
+
+    const timer = setTimeout(() => {
       handleSpeak(accentMode);
-    }, 300);
-  }, [word.word, handleSpeak, accentMode]);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [word.word, accentMode, handleSpeak]);
 
   return (
     <div style={{ perspective: '1000px', width: '100%', maxWidth: '380px', margin: '0 auto' }}>
