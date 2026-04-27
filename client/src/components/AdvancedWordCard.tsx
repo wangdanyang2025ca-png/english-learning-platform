@@ -37,24 +37,34 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
   const isPlayingRef = useRef(false);
 
-  // 语音播放函数
+  // 语音播放函数 - 使用Google TTS
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     try {
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(word.word);
-        utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
-        utterance.rate = speechRate || 1;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
+      // 生成Google翻译TTS URL
+      const lang = accent === 'us' ? 'en' : 'en';
+      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=${lang}&client=tw-ob`;
 
-        utterance.onend = () => {
-          console.log('✅ 播放完成');
-        };
+      // 创建音频元素并播放
+      const audio = new Audio(audioUrl);
+      audio.playbackRate = speechRate || 1;
 
-        window.speechSynthesis.speak(utterance);
-      }
+      audio.onplay = () => {
+        console.log('✅ 开始播放: ' + word.word);
+      };
+
+      audio.onended = () => {
+        console.log('✅ 播放完成');
+      };
+
+      audio.onerror = () => {
+        console.error('❌ 音频加载失败');
+      };
+
+      audio.play().catch(err => {
+        console.error('❌ 播放失败:', err);
+      });
     } catch (error) {
-      console.error('异常:', error);
+      console.error('❌ 异常:', error);
     }
   }, [word.word, accentMode, speechRate]);
 
