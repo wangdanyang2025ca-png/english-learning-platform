@@ -96,6 +96,7 @@ export const AdvancedLearnPage: React.FC = () => {
             uk: w.pronunciation?.uk || w.ipa || ''
           },
           definition_cn: w.definition_cn || '',
+          definition_en: w.definition_en || '',
           examples: (Array.isArray(w.examples) ? w.examples : []).slice(0, 3),
           difficulty: w.difficulty || 1,
           categories: w.categories || [],
