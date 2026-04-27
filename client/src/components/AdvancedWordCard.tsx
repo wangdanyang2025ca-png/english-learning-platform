@@ -36,64 +36,62 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [flipped, setFlipped] = useState(false);
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
 
-  // 语音播放函数 - 使用真实音频文件
+  // 语音播放函数 - 使用有道词典高质量发音
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     console.log('🎯 播放单词:', word.word, '口音:', accent);
 
     try {
-      // 使用Cambridge Dictionary的发音API
-      const voiceCode = accent === 'us' ? 'us' : 'uk';
-      // 使用Forvo API或其他TTS服务的URL
-      const ttsUrl = `https://ssl.gstatic.com/dictionary/static/sounds/20200429/${word.word}--_${voiceCode}_1.mp3`;
+      // 使用有道词典的发音（和有道词典一致）
+      // 参数: le=en 为英文，uk为英式，us为美式
+      const le = accent === 'us' ? 'us' : 'uk';
+      const youdaoUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word.word)}&le=${le}`;
 
-      console.log('🔊 尝试播放音频:', ttsUrl);
+      console.log('🔊 播放有道词典发音:', word.word, accent);
 
-      const audio = new Audio(ttsUrl);
-      audio.onerror = () => {
-        console.log('⚠️ Cambridge API失败，尝试Google Translate...');
-        // 备选方案
-        const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=en&client=gtx`;
-        const audioGoogle = new Audio(googleTtsUrl);
+      const audio = new Audio(youdaoUrl);
 
-        audioGoogle.onplay = () => console.log('✅ 开始播放 (Google TTS)');
-        audioGoogle.onerror = (e) => {
-          console.error('❌ 所有TTS方案都失败了:', e);
-          // 最后尝试Web Speech API
-          tryWebSpeech();
-        };
-
-        audioGoogle.play().catch(e => console.error('❌ 播放失败:', e));
+      audio.onplay = () => {
+        console.log('✅ 开始播放:', accent === 'us' ? '美式' : '英式', word.word);
       };
 
-      audio.onplay = () => console.log('✅ 开始播放 (Cambridge)');
-      audio.onended = () => console.log('✅ 播放完成');
+      audio.onended = () => {
+        console.log('✅ 播放完成');
+      };
 
-      audio.play().catch(e => {
-        console.warn('❌ 播放错误:', e);
-        // 尝试Google Translate备选方案
-        const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=en&client=gtx`;
-        const audioGoogle = new Audio(googleTtsUrl);
-        audioGoogle.play().catch(() => tryWebSpeech());
-      });
+      audio.onerror = (e) => {
+        console.error('❌ 有道发音失败，尝试备选方案:', e);
+        tryBackup();
+      };
+
+      // 尝试播放
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.warn('❌ 播放失败:', err);
+          tryBackup();
+        });
+      }
     } catch (error) {
       console.error('❌ 错误:', error);
     }
 
-    // 备选：Web Speech API
-    function tryWebSpeech() {
-      console.log('📢 最后尝试 Web Speech API');
-      if ('speechSynthesis' in window) {
-        try {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(word.word);
-          utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
-          utterance.rate = speechRate || 1;
-          window.speechSynthesis.speak(utterance);
-          console.log('✅ Web Speech API 已调用');
-        } catch (e) {
-          console.error('❌ Web Speech API 失败:', e);
-        }
-      }
+    // 备选方案：尝试其他来源
+    function tryBackup() {
+      console.log('⚠️ 尝试备选发音源...');
+
+      // 备选1：使用Google Translate音频
+      const le = accent === 'us' ? 'en' : 'en';
+      const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=${le}&client=gtx`;
+
+      const backupAudio = new Audio(googleUrl);
+      backupAudio.onplay = () => console.log('✅ 使用Google音频播放');
+      backupAudio.onerror = () => {
+        console.warn('⚠️ Google音频也失败，停止播放');
+      };
+
+      backupAudio.play().catch(() => {
+        console.warn('❌ 所有音频源都不可用');
+      });
     }
   }, [word.word, accentMode, speechRate]);
 
