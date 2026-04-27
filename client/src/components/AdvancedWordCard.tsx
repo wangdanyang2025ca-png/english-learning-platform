@@ -42,24 +42,30 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
 
     try {
       // 方案1: 使用Web Speech API (最优先)
-      if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length > 0) {
+      if ('speechSynthesis' in window) {
         try {
-          window.speechSynthesis.cancel();
+          // 只在有现在播放内容时才cancel，避免中断自己
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+          }
 
-          const utterance = new SpeechSynthesisUtterance(word.word);
-          utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
-          utterance.rate = Math.max(0.5, Math.min(2, speechRate || 1));
-          utterance.pitch = 1.0;
-          utterance.volume = 1.0;
+          // 等待一下确保之前的播放已停止
+          setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(word.word);
+            utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+            utterance.rate = Math.max(0.5, Math.min(2, speechRate || 1));
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
 
-          console.log('🔊 使用 Web Speech API，语言:', utterance.lang);
+            console.log('🔊 使用 Web Speech API，语言:', utterance.lang);
 
-          utterance.onstart = () => console.log('✅ 播放开始');
-          utterance.onend = () => console.log('✅ 播放完成');
-          utterance.onerror = (event) => console.error('❌ 播放错误:', event.error);
+            utterance.onstart = () => console.log('✅ 播放开始');
+            utterance.onend = () => console.log('✅ 播放完成');
+            utterance.onerror = (event) => console.error('❌ 播放错误:', event.error);
 
-          const result = window.speechSynthesis.speak(utterance);
-          console.log('✅ speak() 调用结果:', result);
+            const result = window.speechSynthesis.speak(utterance);
+            console.log('✅ speak() 调用结果:', result);
+          }, 100);
           return;
         } catch (e) {
           console.error('❌ Web Speech API 错误:', e);
