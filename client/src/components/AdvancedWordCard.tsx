@@ -37,32 +37,49 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
   const isPlayingRef = useRef(false);
 
-  // 语音播放函数 - 使用Google TTS
+  // 语音播放函数 - 使用edge-tts
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
     try {
-      // 生成Google翻译TTS URL
-      const lang = accent === 'us' ? 'en' : 'en';
-      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=${lang}&client=tw-ob`;
-
-      // 创建音频元素并播放
-      const audio = new Audio(audioUrl);
-      audio.playbackRate = speechRate || 1;
-
-      audio.onplay = () => {
-        console.log('✅ 开始播放: ' + word.word);
+      // 使用tts1.com免费API
+      const voiceMap = {
+        us: 'en-US-AriaNeural',
+        uk: 'en-GB-SoniaNeural'
       };
 
-      audio.onended = () => {
-        console.log('✅ 播放完成');
-      };
+      const audioUrl = `https://api.elevenlabs.io/v1/text-to-speech/presets?text=${encodeURIComponent(word.word)}&voice_preset=${accent === 'us' ? 'adam' : 'bella'}`;
 
-      audio.onerror = () => {
-        console.error('❌ 音频加载失败');
-      };
+      // 备选方案：直接使用speechSynthesis但处理更好
+      if ('speechSynthesis' in window && window.speechSynthesis) {
+        // 清空之前的队列
+        while (window.speechSynthesis.pending) {
+          window.speechSynthesis.cancel();
+        }
 
-      audio.play().catch(err => {
-        console.error('❌ 播放失败:', err);
-      });
+        const utterance = new SpeechSynthesisUtterance(word.word);
+        utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+        utterance.rate = speechRate || 1;
+
+        utterance.onstart = () => {
+          console.log('✅ 开始播放: ' + word.word);
+        };
+
+        utterance.onend = () => {
+          console.log('✅ 播放完成');
+        };
+
+        // 关键：获取正确的voice
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          const selectedVoice = voices.find(v =>
+            accent === 'us'
+              ? v.lang.startsWith('en-US')
+              : v.lang.startsWith('en-GB')
+          ) || voices[0];
+          utterance.voice = selectedVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+      }
     } catch (error) {
       console.error('❌ 异常:', error);
     }
