@@ -13,7 +13,8 @@ interface AdvancedWord {
     uk: string;
   };
   definition_cn: string;
-  examples: Array<{ sentence: string }>;
+  definition_en?: string;
+  examples: Array<{ sentence: string; sentence_cn?: string }>;
   difficulty: number;
   categories: string[];
   round: number;
@@ -71,11 +72,12 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
         style={{
           position: 'relative',
           width: '100%',
-          minHeight: '350px',
+          height: '420px',
           cursor: 'pointer',
           transition: 'transform 0.6s',
           transformStyle: 'preserve-3d',
-          transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+          transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+          marginBottom: '20px'
         }}
       >
         {/* 正面：单词和发音 */}
@@ -112,6 +114,16 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
           <h2 style={{ fontSize: '56px', margin: '0 0 10px 0', fontWeight: 'bold' }}>
             {word.word}
           </h2>
+
+          {/* 中英文翻译 */}
+          <div style={{ fontSize: '16px', opacity: 0.95, marginBottom: '15px', lineHeight: '1.5' }}>
+            <div style={{ color: 'rgba(255,255,255,0.9)' }}>
+              {word.definition_en || word.definition_cn}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginTop: '5px' }}>
+              {word.definition_cn}
+            </div>
+          </div>
 
           {/* IPA 音标 */}
           <div style={{ fontSize: '18px', opacity: 0.9, marginBottom: '25px' }}>
@@ -222,7 +234,7 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
           style={{
             position: 'absolute',
             width: '100%',
-            minHeight: '350px',
+            height: '420px',
             backfaceVisibility: 'hidden',
             background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
             borderRadius: '16px',
@@ -235,8 +247,7 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
             boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
             transform: 'rotateY(180deg)',
             WebkitBackfaceVisibility: 'hidden',
-            overflowY: 'auto',
-            maxHeight: '600px'
+            overflowY: 'auto'
           } as React.CSSProperties}
         >
           {/* 中文释义 */}
@@ -248,12 +259,18 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)', margin: '15px 0' }} />
 
           {/* 例句显示 */}
-          <div style={{ fontSize: '13px', opacity: 0.95, lineHeight: '1.7', marginBottom: '20px' }}>
+          <div style={{ fontSize: '13px', opacity: 0.95, lineHeight: '1.8', marginBottom: '20px' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '10px', fontSize: '14px' }}>📝 例句：</div>
             {word.examples.slice(0, 3).map((example, idx) => (
-              <div key={idx} style={{ marginBottom: '10px', paddingLeft: '10px', borderLeft: '2px solid rgba(255,255,255,0.5)' }}>
-                <span style={{ color: 'rgba(255,255,255,0.8)' }}>{idx + 1}. </span>
-                <span>{example.sentence}</span>
+              <div key={idx} style={{ marginBottom: '15px', paddingLeft: '10px', borderLeft: '2px solid rgba(255,255,255,0.5)' }}>
+                <div style={{ color: 'rgba(255,255,255,0.9)', marginBottom: '4px' }}>
+                  {idx + 1}. {example.sentence}
+                </div>
+                {example.sentence_cn && (
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontStyle: 'italic' }}>
+                    {example.sentence_cn}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -272,8 +289,7 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
       <div style={{ marginTop: '40px', display: 'flex', gap: '15px' }}>
         <button
           onClick={() => {
-            setFlipped(false);
-            onNext();
+            setFlipped(true);
           }}
           style={{
             flex: 1,
