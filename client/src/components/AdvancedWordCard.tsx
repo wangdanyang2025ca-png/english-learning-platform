@@ -323,6 +323,7 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
         <button
           onClick={() => {
             setFlipped(false);
+            handleSpeak('uk');
             onNext();
           }}
           style={{
