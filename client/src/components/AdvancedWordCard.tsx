@@ -36,61 +36,64 @@ export const AdvancedWordCard: React.FC<AdvancedWordCardProps> = ({
   const [flipped, setFlipped] = useState(false);
   const [accentMode, setAccentMode] = useState<'us' | 'uk'>(autoPlayAccent);
 
-  // 语音播放函数
+  // 语音播放函数 - 使用真实音频文件
   const handleSpeak = useCallback((accent: 'us' | 'uk' = accentMode) => {
-    console.log('🎯 handleSpeak called with accent:', accent, 'word:', word.word);
+    console.log('🎯 播放单词:', word.word, '口音:', accent);
 
     try {
-      // 方案1: 使用Web Speech API (最优先)
-      if ('speechSynthesis' in window) {
-        try {
-          // 只在有现在播放内容时才cancel，避免中断自己
-          if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
-          }
+      // 使用Cambridge Dictionary的发音API
+      const voiceCode = accent === 'us' ? 'us' : 'uk';
+      // 使用Forvo API或其他TTS服务的URL
+      const ttsUrl = `https://ssl.gstatic.com/dictionary/static/sounds/20200429/${word.word}--_${voiceCode}_1.mp3`;
 
-          // 等待一下确保之前的播放已停止
-          setTimeout(() => {
-            const utterance = new SpeechSynthesisUtterance(word.word);
-            utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
-            utterance.rate = Math.max(0.5, Math.min(2, speechRate || 1));
-            utterance.pitch = 1.0;
-            utterance.volume = 1.0;
-
-            console.log('🔊 使用 Web Speech API，语言:', utterance.lang);
-
-            utterance.onstart = () => console.log('✅ 播放开始');
-            utterance.onend = () => console.log('✅ 播放完成');
-            utterance.onerror = (event) => console.error('❌ 播放错误:', event.error);
-
-            const result = window.speechSynthesis.speak(utterance);
-            console.log('✅ speak() 调用结果:', result);
-          }, 100);
-          return;
-        } catch (e) {
-          console.error('❌ Web Speech API 错误:', e);
-        }
-      }
-
-      // 方案2: 使用Google Translate TTS API
-      console.log('⚠️ 尝试备选方案: Google Translate TTS');
-      const lang = accent === 'us' ? 'en' : 'en';
-      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=${lang}&client=gtx&tl_src_lang=en`;
+      console.log('🔊 尝试播放音频:', ttsUrl);
 
       const audio = new Audio(ttsUrl);
-      audio.crossOrigin = 'anonymous';
-      audio.oncanplay = () => console.log('✅ 音频可以播放');
-      audio.onplay = () => console.log('✅ 开始播放音频');
-      audio.onerror = (e) => console.error('❌ 音频加载错误:', e);
+      audio.onerror = () => {
+        console.log('⚠️ Cambridge API失败，尝试Google Translate...');
+        // 备选方案
+        const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=en&client=gtx`;
+        const audioGoogle = new Audio(googleTtsUrl);
 
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => console.log('✅ 音频播放成功'))
-          .catch(err => console.error('❌ 音频播放失败:', err));
-      }
+        audioGoogle.onplay = () => console.log('✅ 开始播放 (Google TTS)');
+        audioGoogle.onerror = (e) => {
+          console.error('❌ 所有TTS方案都失败了:', e);
+          // 最后尝试Web Speech API
+          tryWebSpeech();
+        };
+
+        audioGoogle.play().catch(e => console.error('❌ 播放失败:', e));
+      };
+
+      audio.onplay = () => console.log('✅ 开始播放 (Cambridge)');
+      audio.onended = () => console.log('✅ 播放完成');
+
+      audio.play().catch(e => {
+        console.warn('❌ 播放错误:', e);
+        // 尝试Google Translate备选方案
+        const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=en&client=gtx`;
+        const audioGoogle = new Audio(googleTtsUrl);
+        audioGoogle.play().catch(() => tryWebSpeech());
+      });
     } catch (error) {
-      console.error('❌ 播放发生错误:', error);
+      console.error('❌ 错误:', error);
+    }
+
+    // 备选：Web Speech API
+    function tryWebSpeech() {
+      console.log('📢 最后尝试 Web Speech API');
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(word.word);
+          utterance.lang = accent === 'us' ? 'en-US' : 'en-GB';
+          utterance.rate = speechRate || 1;
+          window.speechSynthesis.speak(utterance);
+          console.log('✅ Web Speech API 已调用');
+        } catch (e) {
+          console.error('❌ Web Speech API 失败:', e);
+        }
+      }
     }
   }, [word.word, accentMode, speechRate]);
 
