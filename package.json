@@ -1,0 +1,9 @@
+{
+  "name": "english-learning-platform",
+  "version": "0.1.0",
+  "description": "English Learning Platform with vocabulary cards",
+  "private": true,
+  "scripts": {
+    "build": "cd client && npm run build"
+  }
+}
